@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Accra Life</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe3c8;--ink:#23201b;--panel:#fffaf0;--sea:#2a8c8c;--land:#e6d4a8;--road:#b9a77f;--yel:#f4c20d;--red:#b5472b;--line:#d9c9a3;--muted:#6b6355;--ok:#2f7d4f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1b17;--ink:#f3ead6;--panel:#2a2722;--sea:#1b5e5e;--land:#3a352b;--road:#575042;--line:#3d382f;--muted:#a89f8c;--ok:#6fc08f}}
+:root[data-theme="dark"]{--bg:#1d1b17;--ink:#f3ead6;--panel:#2a2722;--sea:#1b5e5e;--land:#3a352b;--road:#575042;--line:#3d382f;--muted:#a89f8c;--ok:#6fc08f}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif}
+body{max-width:520px;margin:0 auto;padding:12px 14px 28px}
+header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+h1{font-size:1.7rem;font-weight:800;margin:0;letter-spacing:-.02em}
+.clock{font-weight:500;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+.stat b{display:flex;justify-content:space-between;font-size:.85rem;font-weight:500}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.bar i.low{background:var(--red)}
+.cash{grid-column:1/-1;display:flex;justify-content:space-between;font-size:1.05rem;font-weight:800}
+.map{position:relative;width:100%;aspect-ratio:1/1.05;border-radius:16px;overflow:hidden;background:var(--land);border:1px solid var(--line)}
+.sea{position:absolute;left:0;right:0;bottom:0;height:22%;background:var(--sea)}
+.sea span{position:absolute;right:10px;bottom:8px;color:#fff;opacity:.8;font-size:.8rem}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.pin{position:absolute;transform:translate(-50%,-50%);border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:14px;padding:5px 8px;font:inherit;font-size:.75rem;font-weight:500;text-align:center;cursor:pointer;line-height:1.1}
+.pin em{display:block;font-style:normal;font-size:1.35rem}
+.pin.here{background:var(--yel);color:#23201b}
+.pin.sel{outline:3px solid var(--red)}
+.pin:focus-visible,.act:focus-visible,.reset:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+.sheet h2{margin:0 0 8px;font-size:1.1rem}
+.sheet p{margin:0;color:var(--muted);font-size:.9rem}
+.act{display:block;width:100%;text-align:left;margin-top:6px;padding:10px 12px;border-radius:10px;border:1px solid var(--ink);background:var(--bg);color:var(--ink);font:inherit;font-size:.92rem;cursor:pointer}
+.act small{display:block;color:var(--muted);font-size:.78rem}
+.act:disabled{opacity:.45;cursor:not-allowed}
+.log{margin:10px 0 0;padding:0;list-style:none;font-size:.88rem}
+.log li{padding:6px 0;border-bottom:1px solid var(--line)}
+.log li:first-child{font-weight:800}
+.reset{margin-top:14px;background:none;border:none;color:var(--muted);font:inherit;font-size:.8rem;text-decoration:underline;cursor:pointer}
+.auth{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;justify-content:center;gap:10px;padding:24px;max-width:520px;margin:0 auto}
+.auth[hidden]{display:none}
+.auth p{margin:0;color:var(--muted)}
+.auth input{font:inherit;padding:12px;border-radius:10px;border:1px solid var(--ink);background:var(--panel);color:var(--ink);font-size:1rem}
+.auth .row{display:flex;gap:8px}
+.auth .row button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--ink);font:inherit;font-weight:800;cursor:pointer;background:var(--yel);color:#23201b}
+.auth .row button+button{background:var(--panel);color:var(--ink)}
+.auth input:focus-visible,.auth button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+#amsg{min-height:1.2em;color:var(--red);font-size:.9rem}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head>
+<body>
+<div class="auth" id="auth" hidden>
+  <h1>Accra Life</h1>
+  <p>Sign up to save your game and play from any phone.</p>
+  <input id="em" type="email" placeholder="Email" autocomplete="email">
+  <input id="pw" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
+  <div class="row"><button id="up">Sign up</button><button id="in">Log in</button></div>
+  <div id="amsg" role="status"></div>
+  <button class="reset" id="guest">Play without saving online</button>
+</div>
+<header><h1>Accra Life</h1><div class="clock" id="clock"></div></header>
+<div class="stats" id="stats"></div>
+<div class="map" id="map">
+  <svg viewBox="0 0 100 105" preserveAspectRatio="none" aria-hidden="true">
+    <g stroke="var(--road)" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <path d="M0 40 L100 44"/><path d="M30 0 L36 82"/><path d="M72 0 L66 82"/><path d="M0 62 L100 58"/>
+    </g>
+  </svg>
+  <div class="sea"><span>Gulf of Guinea</span></div>
+</div>
+<div class="sheet" id="sheet"></div>
+<ul class="log" id="log"></ul>
+<button class="reset" id="reset">Start a new life</button> <button class="reset" id="acct" hidden>Log out</button>
+
+<script>
+var P={
+ home:{n:'Home',e:'🏠',x:16,y:20,a:[{t:'Sleep until morning',d:'Restores energy, you wake at 6:00',sleep:1}]},
+ makola:{n:'Makola Market',e:'🧺',x:62,y:18,a:[
+  {t:'Run a stall',d:'3 hours, earn GH₵70-120',hrs:3,en:-22,full:-10,cash:[70,120],say:'The stall was busy. Customers kept bargaining.'},
+  {t:'Help unload a truck',d:'2 hours, earn GH₵40-60',hrs:2,en:-25,full:-8,cash:[40,60],say:'Heavy work, but you got paid on the spot.'}]},
+ chop:{n:'Chop bar',e:'🍲',x:16,y:50,a:[
+  {t:'Waakye',d:'GH₵25, fills you up a lot',hrs:1,cash:-25,full:35,mood:3,say:'Waakye with shito and egg. Good.'},
+  {t:'Fufu and light soup',d:'GH₵45, a full meal',hrs:1,cash:-45,full:55,mood:6,say:'You finished the whole bowl.'},
+  {t:'Kenkey and fish',d:'GH₵20, cheap and filling',hrs:1,cash:-20,full:28,say:'Kenkey, pepper and fried fish.'}]},
+ legon:{n:'Legon campus',e:'🎓',x:84,y:40,a:[
+  {t:'Attend a lecture',d:'3 hours, skill +5',hrs:3,en:-15,skill:5,mood:-3,say:'You took notes and learned something.'},
+  {t:'Tutor a classmate',d:'Needs skill 10, earn GH₵50-80',hrs:2,en:-12,cash:[50,80],need:10,say:'Your classmate paid for the help.'}]},
+ osu:{n:'Oxford Street, Osu',e:'🛍️',x:50,y:48,a:[
+  {t:'Hang out with friends',d:'2 hours, GH₵40, mood +18',hrs:2,cash:-40,mood:18,full:-5,say:'Laughs, music and a few drinks with friends.'},
+  {t:'Window shop',d:'1 hour, free, mood +4',hrs:1,mood:4,say:'You looked at everything and bought nothing.'}]},
+ labadi:{n:'Labadi Beach',e:'🏖️',x:60,y:72,a:[
+  {t:'Relax on the beach',d:'2 hours, GH₵10 entry, mood +15',hrs:2,cash:-10,mood:15,en:5,say:'Sea breeze and horse riders going past.'}]}
+};
+var EV=[
+ {m:'Dumsor. The lights went off and you sat in the dark.',mood:-6},
+ {m:'You found GH₵20 in an old jacket pocket.',cash:20},
+ {m:'Heavy rain slowed everything down.',en:-5},
+ {m:'A friend sent you GH₵30 on mobile money.',cash:30,mood:4}
+];
+var KEY='accra-life-v1',S,sel='home';
+function fresh(){return{cash:120,en:100,full:70,mood:60,skill:0,day:1,h:6,at:'home',log:['Welcome to Accra. You start at home with GH₵120.']}}
+function load(){try{var v=localStorage.getItem(KEY);S=v?JSON.parse(v):fresh()}catch(e){S=fresh()}}
+var SB_URL='https://dfqjrnoqjsmipgxfdhth.supabase.co',SB_KEY='sb_publishable_eG-YwTWYKVZSD4IJfQCWjA_5CaHyT_8',sb=null,user=null,tm=null;
+try{if(window.supabase&&SB_URL.indexOf('http')===0)sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(sb&&user){clearTimeout(tm);tm=setTimeout(push,800)}}
+async function push(){try{await sb.from('saves').upsert({user_id:user.id,data:S,updated_at:new Date().toISOString()})}catch(e){}}
+async function pull(){try{var r=await sb.from('saves').select('data').eq('user_id',user.id).maybeSingle();if(r.data&&r.data.data){S=r.data.data}else{push()}}catch(e){}}
+function amsg(t){document.getElementById('amsg').textContent=t}
+async function auth(kind){
+  var e=document.getElementById('em').value.trim(),p=document.getElementById('pw').value;
+  if(!sb){amsg('Online saving is not set up yet.');return}
+  if(!e||p.length<6){amsg('Enter your email and a password of 6 or more characters.');return}
+  amsg('One moment...');
+  var r=kind==='up'?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});
+  if(r.error){amsg(r.error.message);return}
+  if(!r.data.session){amsg('Check your email to confirm your account, then log in.');return}
+  await enter(r.data.session.user)}
+async function enter(u){user=u;await pull();sel=S.at;document.getElementById('auth').hidden=true;document.getElementById('acct').hidden=false;render()}
+function cl(v){return Math.max(0,Math.min(100,Math.round(v)))}
+function say(m){S.log.unshift(m);S.log=S.log.slice(0,5)}
+function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function can(a){
+  if(a.sleep)return'';
+  var c=Array.isArray(a.cash)?0:(a.cash||0);
+  if(c<0&&S.cash<-c)return'Not enough cash';
+  if(a.en<0&&S.en<-a.en)return'Too tired';
+  if(a.need&&S.skill<a.need)return'Needs skill '+a.need;
+  return''}
+function pass(){say('It got late and you passed out at home. You woke up at 6:00.');S.day++;S.h=6;S.at='home';S.en=60;S.full=cl(S.full-20)}
+function go(id){
+  sel=id;
+  if(id!==S.at){
+    if(S.cash<5){say('You need GH₵5 for trotro fare.');render();return}
+    S.cash-=5;S.h+=1;S.at=id;S.full=cl(S.full-3);say('You took a trotro to '+P[id].n+' for GH₵5.');
+    if(S.h>=24)pass()}
+  save();render()}
+function act(i){
+  var a=P[sel].a[i];
+  if(can(a))return;
+  if(a.sleep){S.day++;S.h=6;S.en=100;S.full=cl(S.full-25);S.mood=cl(S.mood+5);say('Day '+S.day+'. You slept well and woke up at 6:00.');save();render();return}
+  var gain=Array.isArray(a.cash)?rnd(a.cash[0],a.cash[1]):(a.cash||0);
+  S.cash+=gain;S.en=cl(S.en+(a.en||0));S.full=cl(S.full+(a.full||0)-a.hrs*3);
+  S.mood=cl(S.mood+(a.mood||0));S.skill+=(a.skill||0);S.h+=a.hrs;
+  var m=a.say+(gain>0?' You earned GH₵'+gain+'.':'');
+  say(m);
+  if(S.full<=0){S.en=cl(S.en-10);say('You are starving. Eat something soon.')}
+  if(Math.random()<.18){var e=EV[rnd(0,EV.length-1)];S.cash+=e.cash||0;S.mood=cl(S.mood+(e.mood||0));S.en=cl(S.en+(e.en||0));say(e.m)}
+  if(S.h>=24)pass();
+  save();render()}
+function bar(l,v){return'<div class="stat"><b><span>'+l+'</span><span>'+v+'</span></b><div class="bar"><i class="'+(v<25?'low':'')+'" style="width:'+v+'%"></i></div></div>'}
+function render(){
+  document.getElementById('clock').textContent='Day '+S.day+', '+(S.h<10?'0':'')+S.h+':00';
+  document.getElementById('stats').innerHTML='<div class="stat cash"><span>Cash</span><span>GH₵'+S.cash+'</span></div>'+bar('Energy',S.en)+bar('Fullness',S.full)+bar('Mood',S.mood)+'<div class="stat"><b><span>Skill</span><span>'+S.skill+'</span></b></div>';
+  var m=document.getElementById('map');
+  [].slice.call(m.querySelectorAll('.pin')).forEach(function(n){n.remove()});
+  Object.keys(P).forEach(function(id){
+    var p=P[id],b=document.createElement('button');
+    b.className='pin'+(S.at===id?' here':'')+(sel===id?' sel':'');
+    b.style.left=p.x+'%';b.style.top=p.y+'%';
+    b.setAttribute('aria-label',p.n);
+    b.innerHTML='<em>'+p.e+'</em>'+p.n;
+    b.onclick=function(){sel=id;render()};
+    m.appendChild(b)});
+  var p=P[sel],h='<h2>'+p.n+'</h2>';
+  if(sel!==S.at){h+='<button class="act" id="go">Take a trotro here<small>GH₵5 and 1 hour</small></button>'}
+  else{p.a.forEach(function(a,i){var r=can(a);h+='<button class="act" data-i="'+i+'"'+(r?' disabled':'')+'>'+a.t+'<small>'+(r||a.d)+'</small></button>'})}
+  var sh=document.getElementById('sheet');sh.innerHTML=h;
+  var g=document.getElementById('go');if(g)g.onclick=function(){go(sel)};
+  [].slice.call(sh.querySelectorAll('[data-i]')).forEach(function(b){b.onclick=function(){act(+b.dataset.i)}});
+  document.getElementById('log').innerHTML=S.log.map(function(l){return'<li>'+l+'</li>'}).join('')}
+document.getElementById('reset').onclick=function(){S=fresh();sel='home';save();render()};
+load();render();
+document.getElementById('up').onclick=function(){auth('up')};
+document.getElementById('in').onclick=function(){auth('in')};
+document.getElementById('guest').onclick=function(){document.getElementById('auth').hidden=true};
+document.getElementById('acct').onclick=async function(){await sb.auth.signOut();user=null;S=fresh();sel='home';this.hidden=true;document.getElementById('auth').hidden=false;render()};
+(async function(){
+  if(!sb)return;
+  var r=await sb.auth.getSession();
+  if(r.data.session)await enter(r.data.session.user);else document.getElementById('auth').hidden=false})();
+</script>
+</body>
+</html>
